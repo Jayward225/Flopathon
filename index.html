@@ -40,29 +40,52 @@
             border-radius: 0.5rem;
             font-size: 1rem;
         }
-        /* Message box for alerts */
-        .message-box {
+        /* Toast Notification Styles */
+        .toast-notification {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
+            bottom: 20px; /* Adjust as needed for spacing from bottom */
+            right: 20px; /* Adjust as needed for spacing from right */
+            width: 376px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.73);
+            overflow: hidden;
             border-radius: 8px;
-            text-align: center;
+            outline: 1px rgba(17.60, 169.14, 30.23, 0.51) solid; /* Greenish outline for success */
+            outline-offset: -1px;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            display: flex; /* Changed from inline-flex to flex */
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow for better visibility */
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0; /* Hidden by default */
+            pointer-events: none; /* Allow clicks to pass through when hidden */
         }
-        .message-box button {
-            margin-top: 15px;
-            padding: 8px 15px;
-            background-color: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        .toast-notification.show {
+            opacity: 1;
+            pointer-events: auto;
         }
+        .toast-title {
+            align-self: stretch;
+            color: black;
+            font-size: 20px;
+            font-family: 'Sofia Pro', 'Inter', sans-serif;
+            font-weight: 800;
+            line-height: 28px;
+            word-wrap: break-word;
+            margin-bottom: 4px; /* Spacing between title and message */
+        }
+        .toast-message {
+            align-self: stretch;
+            color: black;
+            font-size: 16px;
+            font-family: 'Sofia Pro', 'Inter', sans-serif;
+            font-weight: 400;
+            line-height: 24px;
+            word-wrap: break-word;
+        }
+
         .locked-button {
             opacity: 0.5;
             cursor: not-allowed;
@@ -126,15 +149,10 @@
 <body>
     <div id="app">
         <div class="min-h-screen flex items-center justify-center p-4 rounded-lg">
-            <!-- Message Box -->
-            <div v-if="messageBoxVisible" class="message-box fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border border-gray-300 p-5 shadow-lg z-50 rounded-lg text-center">
-                <p id="messageBoxText" class="text-gray-800 mb-4">{{ messageBoxText }}</p>
-                <button
-                    @click="hideMessageBox"
-                    class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-                >
-                    OK
-                </button>
+            <!-- Toast Notification -->
+            <div :class="['toast-notification', { 'show': toastVisible }]">
+                <div class="toast-title">{{ toastTitle }}</div>
+                <div class="toast-message">{{ toastMessage }}</div>
             </div>
 
             <!-- Start Screen -->
@@ -227,9 +245,12 @@
                 const currentScreen = ref('startScreen');
                 // State for phone number input
                 const phoneNumber = ref('');
-                // State for message box
-                const messageBoxVisible = ref(false);
-                const messageBoxText = ref('');
+                // State for toast notification
+                const toastVisible = ref(false);
+                const toastTitle = ref('');
+                const toastMessage = ref('');
+                let toastTimeoutId = null; // To clear previous toast timeouts
+
                 // State for text message interval
                 const textMessageIntervalId = ref(null);
 
@@ -255,16 +276,22 @@
                     return latDiff < coordinateTolerance && lonDiff < coordinateTolerance;
                 });
 
-                // Function to show the custom message box
-                const showMessageBox = (message) => {
-                    messageBoxText.value = message;
-                    messageBoxVisible.value = true;
-                };
+                // Function to show the toast notification
+                const showToast = (title, message) => {
+                    // Clear any existing toast timeout to prevent immediate hiding
+                    if (toastTimeoutId) {
+                        clearTimeout(toastTimeoutId);
+                    }
+                    toastTitle.value = title;
+                    toastMessage.value = message;
+                    toastVisible.value = true;
 
-                // Function to hide the custom message box
-                const hideMessageBox = () => {
-                    messageBoxVisible.value = false;
-                    messageBoxText.value = '';
+                    // Hide the toast after 5 seconds (adjust as needed)
+                    toastTimeoutId = setTimeout(() => {
+                        toastVisible.value = false;
+                        toastTitle.value = '';
+                        toastMessage.value = '';
+                    }, 5000);
                 };
 
                 // Function to simulate sending a text message using Gemini API
@@ -307,12 +334,11 @@
 
                 // Geolocation error callback
                 const geolocationErrorCallback = (error) => {
-                    // Provide a more descriptive error message if 'error.message' is not available
                     const errorMessage = error.message || "Unknown geolocation error. Please ensure location services are enabled and permissions are granted.";
                     geolocationError.value = errorMessage;
                     isLocating.value = false;
-                    showMessageBox(`Geolocation Error: ${errorMessage}`);
-                    // Log the constructed errorMessage first for clarity, then the raw error object for debugging
+                    // For geolocation errors, we might still want to show a message, but not necessarily a "success" toast
+                    // showToast("Geolocation Error", errorMessage); // Optional: show error in toast
                     console.error("Geolocation error:", errorMessage, error);
                 };
 
@@ -320,7 +346,6 @@
                 const startWatchingPosition = () => {
                     if (navigator.geolocation) {
                         isLocating.value = true;
-                        // Use watchPosition for continuous updates (more annoying for UX!)
                         watchId = navigator.geolocation.watchPosition(
                             geolocationSuccess,
                             geolocationErrorCallback,
@@ -329,7 +354,7 @@
                     } else {
                         const errorMessage = "Geolocation is not supported by this browser.";
                         geolocationError.value = errorMessage;
-                        showMessageBox(errorMessage + " Cannot proceed.");
+                        // showToast("Geolocation Error", errorMessage + " Cannot proceed."); // Optional: show error in toast
                     }
                 };
 
@@ -350,7 +375,8 @@
                 // Handle "Submit" phone number button click
                 const handleSubmitPhoneNumberClick = () => {
                     if (phoneNumber.value.trim()) {
-                        showMessageBox(`Phone number ${phoneNumber.value} submitted. Prepare for constant texts!`);
+                        // Show the new toast notification
+                        showToast("Phone # Successful", "Your phone number has successfully been sold to several marketers.");
 
                         // Clear any existing interval to prevent multiple intervals running
                         if (textMessageIntervalId.value) {
@@ -367,24 +393,28 @@
                         currentScreen.value = 'coordinatesScreen';
                         startWatchingPosition(); // Start watching position when on this screen
                     } else {
-                        showMessageBox("Please enter your phone number.");
+                        // Use the toast for input validation feedback as well
+                        showToast("Input Error", "Please enter your phone number.");
                     }
                 };
 
                 // Handle "Unlock Next Step" button click on coordinates screen
                 const handleCoordinateUnlockClick = () => {
                     if (isCoordinateButtonUnlocked.value) {
-                        showMessageBox("Coordinates verified! Proceeding to the next frustrating step.");
+                        showToast("Location Verified", "Coordinates verified! Proceeding to the next frustrating step.");
                         currentScreen.value = 'printScreen'; // Transition to print screen
+                    } else {
+                        showToast("Location Mismatch", "You are not at the required coordinates. Please move to the designated location.");
                     }
                 };
 
                 // Handle "Continue" button click on print screen
                 const handlePrintContinueClick = () => {
-                    // Trigger the browser's print dialog
-                    window.print();
+                    showToast("Instructions Ready", "Opening PDF for printing. Please print from the new tab.");
+                    // Open the PDF in a new tab for printing
+                    window.open('https://raw.githubusercontent.com/Jayward225/FloppyBird/main/Instructions.pdf', '_blank');
                     // TODO: Add transition to the next screen (QR code screen) here
-                    // For now, it will stay on this screen after printing.
+                    // For now, it will stay on this screen after opening the PDF.
                 };
 
                 // Cleanup interval and geolocation watch on component unmount
@@ -392,14 +422,18 @@
                     if (textMessageIntervalId.value) {
                         clearInterval(textMessageIntervalId.value);
                     }
+                    if (toastTimeoutId) {
+                        clearTimeout(toastTimeoutId);
+                    }
                     stopWatchingPosition();
                 });
 
                 return {
                     currentScreen,
                     phoneNumber,
-                    messageBoxVisible,
-                    messageBoxText,
+                    toastVisible,
+                    toastTitle,
+                    toastMessage,
                     currentLatitude,
                     currentLongitude,
                     geolocationError,
@@ -407,16 +441,13 @@
                     targetLatitude,
                     targetLongitude,
                     isCoordinateButtonUnlocked,
-                    showMessageBox,
-                    hideMessageBox,
                     handleChangeVolumeClick,
                     handleSubmitPhoneNumberClick,
                     handleCoordinateUnlockClick,
-                    handlePrintContinueClick, // Expose the new handler
+                    handlePrintContinueClick,
                 };
             },
         }).mount('#app');
     </script>
 </body>
 </html>
-
