@@ -9,18 +9,19 @@
     <!-- Vue.js CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        /* Custom styles for the Inter font */
+        /* Custom styles for the Inter font, with Sofia Pro as preferred */
         body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Ensure the app takes full height and centers content */
-        html, body {
+            font-family: 'Sofia Pro', 'Inter', sans-serif;
+            /* Ensure body covers full viewport and applies background */
+            width: 100%;
             height: 100%;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            background-color: #f0f0f0;
+            /* Updated background gradient and border-radius */
+            background: linear-gradient(155deg, #EFF4FA 1.34%, #C2D5E9 49.14%, #C8DCEF 102.33%);
+            border-radius: 12px; /* Applied to body as a visual effect for the whole page */
         }
         .container {
             max-width: 90%; /* Fluid width */
@@ -66,11 +67,65 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        /* Custom Button Styles (from Figma CSS) */
+        .figma-outer-button {
+            width: 100%; /* Make it responsive to parent */
+            max-width: 352px; /* Constrain to fit inside container's padding */
+            padding: 4px;
+            border-radius: 8px;
+            outline: 2px #364AB8 solid;
+            outline-offset: -2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin: 0 auto; /* Added for horizontal centering */
+        }
+
+        .figma-inner-button {
+            align-self: stretch;
+            padding: 12px 32px; /* Adjusted horizontal padding */
+            position: relative;
+            background: radial-gradient(ellipse 59.89% 487.14% at 50.00% 50.00%, #825EC9 7%, #1A6BB6 98%);
+            overflow: hidden;
+            border-radius: 8px;
+            outline: 1px #B3DFFF solid;
+            outline-offset: -1px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .figma-button-text {
+            color: white;
+            font-size: 18px;
+            font-family: 'Sofia Pro', 'Inter', sans-serif;
+            font-weight: 700;
+            line-height: 28px;
+            word-wrap: break-word;
+            z-index: 10;
+        }
+
+        .figma-noise-overlay {
+            width: 100%; /* Make it responsive */
+            height: 100%; /* Make it responsive */
+            left: 0px;
+            top: 0px;
+            position: absolute;
+            background: rgba(255, 255, 255, 0.03);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-blue-100 p-4 rounded-lg">
+        <div class="min-h-screen flex items-center justify-center p-4 rounded-lg">
             <!-- Message Box -->
             <div v-if="messageBoxVisible" class="message-box fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border border-gray-300 p-5 shadow-lg z-50 rounded-lg text-center">
                 <p id="messageBoxText" class="text-gray-800 mb-4">{{ messageBoxText }}</p>
@@ -83,30 +138,13 @@
             </div>
 
             <!-- Start Screen -->
-            <div v-if="currentScreen === 'startScreen'" class="screen container bg-white p-6 shadow-md rounded-xl text-center w-full max-w-sm">
-                <!-- Outer div for the border and gap -->
-                <div class="relative w-full rounded-lg"
-                     style="background: linear-gradient(to right, #8b5cf6, #3b82f6); padding: 2px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
-                    <!-- Inner div for the transparent gap -->
-                    <div class="w-full h-full rounded-md p-1.5" style="background-color: rgba(255, 255, 255, 0.1);">
-                        <button
-                            @click="handleChangeVolumeClick"
-                            class="relative w-full py-3 px-6 rounded-lg text-white font-semibold
-                                   bg-gradient-to-r from-purple-600 to-blue-500
-                                   border-2 border-blue-400
-                                   hover:from-purple-700 hover:to-blue-600
-                                   transition-all duration-300 ease-in-out
-                                   focus:outline-none focus:ring-4 focus:ring-blue-300
-                                   overflow-hidden"
-                            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);"
-                        >
-                            <!-- Pseudo-element for noise effect -->
-                            <span class="absolute inset-0 z-10 opacity-20"
-                                  style="background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-                                         background-size: 2px 2px;
-                                         pointer-events: none;"></span>
-                            Change Volume
-                        </button>
+            <div v-if="currentScreen === 'startScreen'" class="screen flex items-center justify-center w-full h-full">
+                <!-- Outer Div from Figma -->
+                <div class="figma-outer-button">
+                    <!-- Inner Div from Figma -->
+                    <div @click="handleChangeVolumeClick" class="figma-inner-button">
+                        <div class="figma-button-text">Change Volume</div>
+                        <div class="figma-noise-overlay"></div>
                     </div>
                 </div>
             </div>
@@ -121,29 +159,12 @@
                     v-model="phoneNumber"
                     class="w-full p-3 mt-3 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <!-- Outer div for the submit button with border and gap -->
-                <div class="relative w-full rounded-lg"
-                     style="background: linear-gradient(to right, #8b5cf6, #3b82f6); padding: 2px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
-                    <!-- Inner div for the transparent gap -->
-                    <div class="w-full h-full rounded-md p-1.5" style="background-color: rgba(255, 255, 255, 0.1);">
-                        <button
-                            @click="handleSubmitPhoneNumberClick"
-                            class="relative w-full py-3 px-6 rounded-lg text-white font-semibold
-                                   bg-gradient-to-r from-purple-600 to-blue-500
-                                   border-2 border-blue-400
-                                   hover:from-purple-700 hover:to-blue-600
-                                   transition-all duration-300 ease-in-out
-                                   focus:outline-none focus:ring-4 focus:ring-blue-300
-                                   overflow-hidden"
-                            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);"
-                        >
-                            <!-- Pseudo-element for noise effect -->
-                            <span class="absolute inset-0 z-10 opacity-20"
-                                  style="background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-                                         background-size: 2px 2px;
-                                         pointer-events: none;"></span>
-                            Submit
-                        </button>
+                <!-- Outer Div from Figma -->
+                <div class="figma-outer-button">
+                    <!-- Inner Div from Figma -->
+                    <div @click="handleSubmitPhoneNumberClick" class="figma-inner-button">
+                        <div class="figma-button-text">Submit</div>
+                        <div class="figma-noise-overlay"></div>
                     </div>
                 </div>
             </div>
@@ -167,31 +188,30 @@
                     </p>
                 </div>
 
-                <!-- Outer div for the locked/unlocked button -->
-                <div class="relative w-full rounded-lg"
-                     :style="{ background: isCoordinateButtonUnlocked ? 'linear-gradient(to right, #8b5cf6, #3b82f6)' : '#d1d5db', padding: '2px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)' }">
-                    <!-- Inner div for the transparent gap -->
-                    <div class="w-full h-full rounded-md p-1.5" :style="{ backgroundColor: isCoordinateButtonUnlocked ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }">
-                        <button
-                            @click="handleCoordinateUnlockClick"
-                            :disabled="!isCoordinateButtonUnlocked"
-                            :class="{ 'locked-button': !isCoordinateButtonUnlocked }"
-                            class="relative w-full py-3 px-6 rounded-lg text-white font-semibold
-                                   bg-gradient-to-r from-purple-600 to-blue-500
-                                   border-2 border-blue-400
-                                   hover:from-purple-700 hover:to-blue-600
-                                   transition-all duration-300 ease-in-out
-                                   focus:outline-none focus:ring-4 focus:ring-blue-300
-                                   overflow-hidden"
-                            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);"
-                        >
-                            <!-- Pseudo-element for noise effect -->
-                            <span class="absolute inset-0 z-10 opacity-20"
-                                  style="background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-                                         background-size: 2px 2px;
-                                         pointer-events: none;"></span>
-                            Unlock Next Step
-                        </button>
+                <!-- Outer Div for the locked/unlocked button -->
+                <div class="figma-outer-button"
+                     :style="{ outlineColor: isCoordinateButtonUnlocked ? '#364AB8' : '#d1d5db' }">
+                    <!-- Inner Div for the locked/unlocked button -->
+                    <div @click="handleCoordinateUnlockClick"
+                         :class="{ 'locked-button': !isCoordinateButtonUnlocked }"
+                         class="figma-inner-button"
+                         :style="{ background: isCoordinateButtonUnlocked ? 'radial-gradient(ellipse 59.89% 487.14% at 50.00% 50.00%, #825EC9 7%, #1A6BB6 98%)' : 'rgba(100, 100, 100, 0.5)', outlineColor: isCoordinateButtonUnlocked ? '#B3DFFF' : 'rgba(150, 150, 150, 0.5)' }">
+                        <div class="figma-button-text">Unlock Next Step</div>
+                        <div class="figma-noise-overlay"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Print Screen -->
+            <div v-if="currentScreen === 'printScreen'" class="screen container bg-white p-6 shadow-md rounded-xl text-center w-full max-w-sm">
+                <h1 class="text-2xl font-bold mb-4 text-gray-800">Next Step Instructions</h1>
+                <p class="text-gray-600 mb-6">Click "Continue" to discover the next set of crucial instructions.</p>
+                <!-- Outer Div for the Continue button -->
+                <div class="figma-outer-button">
+                    <!-- Inner Div for the Continue button -->
+                    <div @click="handlePrintContinueClick" class="figma-inner-button">
+                        <div class="figma-button-text">Continue</div>
+                        <div class="figma-noise-overlay"></div>
                     </div>
                 </div>
             </div>
@@ -220,9 +240,9 @@
                 const isLocating = ref(false);
                 let watchId = null; // To store the watchPosition ID for cleanup
 
-                // Target coordinates (example: a specific point in New York City)
-                const targetLatitude = 40.7128;
-                const targetLongitude = -74.0060;
+                // Target coordinates (updated to your specified values)
+                const targetLatitude = 40.347314;
+                const targetLongitude = -111.767654;
                 const coordinateTolerance = 0.0001; // Small tolerance for matching coordinates
 
                 // Computed property to check if coordinates match
@@ -355,9 +375,16 @@
                 const handleCoordinateUnlockClick = () => {
                     if (isCoordinateButtonUnlocked.value) {
                         showMessageBox("Coordinates verified! Proceeding to the next frustrating step.");
-                        // TODO: Add transition to the next screen (Print Screen) here
-                        // For now, it will stay on this screen.
+                        currentScreen.value = 'printScreen'; // Transition to print screen
                     }
+                };
+
+                // Handle "Continue" button click on print screen
+                const handlePrintContinueClick = () => {
+                    // Trigger the browser's print dialog
+                    window.print();
+                    // TODO: Add transition to the next screen (QR code screen) here
+                    // For now, it will stay on this screen after printing.
                 };
 
                 // Cleanup interval and geolocation watch on component unmount
@@ -385,9 +412,11 @@
                     handleChangeVolumeClick,
                     handleSubmitPhoneNumberClick,
                     handleCoordinateUnlockClick,
+                    handlePrintContinueClick, // Expose the new handler
                 };
             },
         }).mount('#app');
     </script>
 </body>
 </html>
+
