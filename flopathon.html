@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volume Control</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        /* Custom styles for the Inter font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Ensure the app takes full height and centers content */
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 90%; /* Fluid width */
+            width: 400px; /* Max width for desktop */
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem;
+            background-color: white;
+            text-align: center;
+        }
+        input[type="tel"] {
+            width: 100%; /* Fluid width */
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+        /* Message box for alerts */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .message-box button {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .locked-button {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-purple-100 to-blue-100 p-4 rounded-lg">
+            <!-- Message Box -->
+            <div v-if="messageBoxVisible" class="message-box fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border border-gray-300 p-5 shadow-lg z-50 rounded-lg text-center">
+                <p id="messageBoxText" class="text-gray-800 mb-4">{{ messageBoxText }}</p>
+                <button
+                    @click="hideMessageBox"
+                    class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                >
+                    OK
+                </button>
+            </div>
+
+            <!-- Start Screen -->
+            <div v-if="currentScreen === 'startScreen'" class="screen container bg-white p-6 shadow-md rounded-xl text-center w-full max-w-sm">
+                <!-- Outer div for the border and gap -->
+                <div class="relative w-full rounded-lg"
+                     style="background: linear-gradient(to right, #8b5cf6, #3b82f6); padding: 2px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+                    <!-- Inner div for the transparent gap -->
+                    <div class="w-full h-full rounded-md p-1.5" style="background-color: rgba(255, 255, 255, 0.1);">
+                        <button
+                            @click="handleChangeVolumeClick"
+                            class="relative w-full py-3 px-6 rounded-lg text-white font-semibold
+                                   bg-gradient-to-r from-purple-600 to-blue-500
+                                   border-2 border-blue-400
+                                   hover:from-purple-700 hover:to-blue-600
+                                   transition-all duration-300 ease-in-out
+                                   focus:outline-none focus:ring-4 focus:ring-blue-300
+                                   overflow-hidden"
+                            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);"
+                        >
+                            <!-- Pseudo-element for noise effect -->
+                            <span class="absolute inset-0 z-10 opacity-20"
+                                  style="background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+                                         background-size: 2px 2px;
+                                         pointer-events: none;"></span>
+                            Change Volume
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phone Number Entry Screen -->
+            <div v-if="currentScreen === 'phoneScreen'" class="screen container bg-white p-6 shadow-md rounded-xl text-center w-full max-w-sm">
+                <h1 class="text-2xl font-bold mb-4 text-gray-800">Enter phone number for security reasons.</h1>
+                <input
+                    type="tel"
+                    id="phoneNumberInput"
+                    placeholder="e.g., 555-123-4567"
+                    v-model="phoneNumber"
+                    class="w-full p-3 mt-3 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <!-- Outer div for the submit button with border and gap -->
+                <div class="relative w-full rounded-lg"
+                     style="background: linear-gradient(to right, #8b5cf6, #3b82f6); padding: 2px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+                    <!-- Inner div for the transparent gap -->
+                    <div class="w-full h-full rounded-md p-1.5" style="background-color: rgba(255, 255, 255, 0.1);">
+                        <button
+                            @click="handleSubmitPhoneNumberClick"
+                            class="relative w-full py-3 px-6 rounded-lg text-white font-semibold
+                                   bg-gradient-to-r from-purple-600 to-blue-500
+                                   border-2 border-blue-400
+                                   hover:from-purple-700 hover:to-blue-600
+                                   transition-all duration-300 ease-in-out
+                                   focus:outline-none focus:ring-4 focus:ring-blue-300
+                                   overflow-hidden"
+                            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);"
+                        >
+                            <!-- Pseudo-element for noise effect -->
+                            <span class="absolute inset-0 z-10 opacity-20"
+                                  style="background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+                                         background-size: 2px 2px;
+                                         pointer-events: none;"></span>
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coordinates Screen -->
+            <div v-if="currentScreen === 'coordinatesScreen'" class="screen container bg-white p-6 shadow-md rounded-xl text-center w-full max-w-sm">
+                <h1 class="text-2xl font-bold mb-4 text-gray-800">Location Verification Required</h1>
+                <p class="text-gray-600 mb-4">To proceed, you must be at the designated security coordinates.</p>
+                <div class="mb-4 text-left">
+                    <p class="text-gray-700"><strong>Your Current Location:</strong></p>
+                    <p v-if="isLocating" class="text-blue-500">Locating...</p>
+                    <p v-else-if="geolocationError" class="text-red-500">Error: {{ geolocationError }}</p>
+                    <p v-else class="text-gray-800">
+                        Latitude: {{ currentLatitude ? currentLatitude.toFixed(6) : 'N/A' }}<br/>
+                        Longitude: {{ currentLongitude ? currentLongitude.toFixed(6) : 'N/A' }}
+                    </p>
+                    <p class="text-gray-700 mt-4"><strong>Required Location:</strong></p>
+                    <p class="text-gray-800">
+                        Latitude: {{ targetLatitude.toFixed(6) }}<br/>
+                        Longitude: {{ targetLongitude.toFixed(6) }}
+                    </p>
+                </div>
+
+                <!-- Outer div for the locked/unlocked button -->
+                <div class="relative w-full rounded-lg"
+                     :style="{ background: isCoordinateButtonUnlocked ? 'linear-gradient(to right, #8b5cf6, #3b82f6)' : '#d1d5db', padding: '2px', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)' }">
+                    <!-- Inner div for the transparent gap -->
+                    <div class="w-full h-full rounded-md p-1.5" :style="{ backgroundColor: isCoordinateButtonUnlocked ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' }">
+                        <button
+                            @click="handleCoordinateUnlockClick"
+                            :disabled="!isCoordinateButtonUnlocked"
+                            :class="{ 'locked-button': !isCoordinateButtonUnlocked }"
+                            class="relative w-full py-3 px-6 rounded-lg text-white font-semibold
+                                   bg-gradient-to-r from-purple-600 to-blue-500
+                                   border-2 border-blue-400
+                                   hover:from-purple-700 hover:to-blue-600
+                                   transition-all duration-300 ease-in-out
+                                   focus:outline-none focus:ring-4 focus:ring-blue-300
+                                   overflow-hidden"
+                            style="text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);"
+                        >
+                            <!-- Pseudo-element for noise effect -->
+                            <span class="absolute inset-0 z-10 opacity-20"
+                                  style="background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+                                         background-size: 2px 2px;
+                                         pointer-events: none;"></span>
+                            Unlock Next Step
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        const { createApp, ref, onMounted, onUnmounted, computed } = Vue;
+
+        createApp({
+            setup() {
+                // State for screen management
+                const currentScreen = ref('startScreen');
+                // State for phone number input
+                const phoneNumber = ref('');
+                // State for message box
+                const messageBoxVisible = ref(false);
+                const messageBoxText = ref('');
+                // State for text message interval
+                const textMessageIntervalId = ref(null);
+
+                // State for geolocation
+                const currentLatitude = ref(null);
+                const currentLongitude = ref(null);
+                const geolocationError = ref(null);
+                const isLocating = ref(false);
+                let watchId = null; // To store the watchPosition ID for cleanup
+
+                // Target coordinates (example: a specific point in New York City)
+                const targetLatitude = 40.7128;
+                const targetLongitude = -74.0060;
+                const coordinateTolerance = 0.0001; // Small tolerance for matching coordinates
+
+                // Computed property to check if coordinates match
+                const isCoordinateButtonUnlocked = computed(() => {
+                    if (currentLatitude.value === null || currentLongitude.value === null) {
+                        return false;
+                    }
+                    const latDiff = Math.abs(currentLatitude.value - targetLatitude);
+                    const lonDiff = Math.abs(currentLongitude.value - targetLongitude);
+                    return latDiff < coordinateTolerance && lonDiff < coordinateTolerance;
+                });
+
+                // Function to show the custom message box
+                const showMessageBox = (message) => {
+                    messageBoxText.value = message;
+                    messageBoxVisible.value = true;
+                };
+
+                // Function to hide the custom message box
+                const hideMessageBox = () => {
+                    messageBoxVisible.value = false;
+                    messageBoxText.value = '';
+                };
+
+                // Function to simulate sending a text message using Gemini API
+                const simulateTextMessage = async (number) => {
+                    const prompt = `Simulate sending a text message to ${number} with the content: "A new device is trying to change volume."`;
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // Canvas will provide this at runtime
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        const result = await response.json();
+                        if (result.candidates && result.candidates.length > 0 &&
+                            result.candidates[0].content && result.candidates[0].content.parts &&
+                            result.candidates[0].content.parts.length > 0) {
+                            const text = result.candidates[0].content.parts[0].text;
+                            console.log("Simulated text message response:", text);
+                        } else {
+                            console.error("Gemini API response structure unexpected:", result);
+                        }
+                    } catch (error) {
+                        console.error("Error simulating text message:", error);
+                    }
+                };
+
+                // Geolocation success callback
+                const geolocationSuccess = (position) => {
+                    currentLatitude.value = position.coords.latitude;
+                    currentLongitude.value = position.coords.longitude;
+                    geolocationError.value = null;
+                    isLocating.value = false;
+                    console.log(`Current Location: Lat ${currentLatitude.value}, Lon ${currentLongitude.value}`);
+                };
+
+                // Geolocation error callback
+                const geolocationErrorCallback = (error) => {
+                    // Provide a more descriptive error message if 'error.message' is not available
+                    const errorMessage = error.message || "Unknown geolocation error. Please ensure location services are enabled and permissions are granted.";
+                    geolocationError.value = errorMessage;
+                    isLocating.value = false;
+                    showMessageBox(`Geolocation Error: ${errorMessage}`);
+                    // Log the constructed errorMessage first for clarity, then the raw error object for debugging
+                    console.error("Geolocation error:", errorMessage, error);
+                };
+
+                // Start watching user's position
+                const startWatchingPosition = () => {
+                    if (navigator.geolocation) {
+                        isLocating.value = true;
+                        // Use watchPosition for continuous updates (more annoying for UX!)
+                        watchId = navigator.geolocation.watchPosition(
+                            geolocationSuccess,
+                            geolocationErrorCallback,
+                            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                        );
+                    } else {
+                        const errorMessage = "Geolocation is not supported by this browser.";
+                        geolocationError.value = errorMessage;
+                        showMessageBox(errorMessage + " Cannot proceed.");
+                    }
+                };
+
+                // Stop watching user's position
+                const stopWatchingPosition = () => {
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                        watchId = null;
+                        isLocating.value = false;
+                    }
+                };
+
+                // Handle "Change Volume" button click
+                const handleChangeVolumeClick = () => {
+                    currentScreen.value = 'phoneScreen';
+                };
+
+                // Handle "Submit" phone number button click
+                const handleSubmitPhoneNumberClick = () => {
+                    if (phoneNumber.value.trim()) {
+                        showMessageBox(`Phone number ${phoneNumber.value} submitted. Prepare for constant texts!`);
+
+                        // Clear any existing interval to prevent multiple intervals running
+                        if (textMessageIntervalId.value) {
+                            clearInterval(textMessageIntervalId.value);
+                        }
+
+                        // Start sending texts every 5 seconds
+                        const interval = setInterval(() => {
+                            simulateTextMessage(phoneNumber.value);
+                        }, 5000);
+                        textMessageIntervalId.value = interval;
+
+                        // Transition to coordinates screen
+                        currentScreen.value = 'coordinatesScreen';
+                        startWatchingPosition(); // Start watching position when on this screen
+                    } else {
+                        showMessageBox("Please enter your phone number.");
+                    }
+                };
+
+                // Handle "Unlock Next Step" button click on coordinates screen
+                const handleCoordinateUnlockClick = () => {
+                    if (isCoordinateButtonUnlocked.value) {
+                        showMessageBox("Coordinates verified! Proceeding to the next frustrating step.");
+                        // TODO: Add transition to the next screen (Print Screen) here
+                        // For now, it will stay on this screen.
+                    }
+                };
+
+                // Cleanup interval and geolocation watch on component unmount
+                onUnmounted(() => {
+                    if (textMessageIntervalId.value) {
+                        clearInterval(textMessageIntervalId.value);
+                    }
+                    stopWatchingPosition();
+                });
+
+                return {
+                    currentScreen,
+                    phoneNumber,
+                    messageBoxVisible,
+                    messageBoxText,
+                    currentLatitude,
+                    currentLongitude,
+                    geolocationError,
+                    isLocating,
+                    targetLatitude,
+                    targetLongitude,
+                    isCoordinateButtonUnlocked,
+                    showMessageBox,
+                    hideMessageBox,
+                    handleChangeVolumeClick,
+                    handleSubmitPhoneNumberClick,
+                    handleCoordinateUnlockClick,
+                };
+            },
+        }).mount('#app');
+    </script>
+</body>
+</html>
