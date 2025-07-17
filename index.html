@@ -144,6 +144,12 @@
             background: rgba(255, 255, 255, 0.03);
             pointer-events: none;
         }
+        /* Styles for the PDF iframe */
+        .pdf-iframe {
+            width: 100%;
+            height: calc(100vh - 100px); /* Adjust height as needed, leaving space for UI if any */
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -233,11 +239,18 @@
                     </div>
                 </div>
             </div>
+
+            <!-- PDF Print Screen -->
+            <div v-if="currentScreen === 'pdfPrintScreen'" class="screen w-full h-full flex flex-col items-center justify-center">
+                <h1 class="text-2xl font-bold mb-4 text-gray-800">Preparing Instructions for Print...</h1>
+                <p class="text-gray-600 mb-4">Please confirm the print dialogue that appears.</p>
+                <iframe id="pdfViewer" :src="pdfUrl" class="pdf-iframe"></iframe>
+            </div>
         </div>
     </div>
 
     <script type="module">
-        const { createApp, ref, onMounted, onUnmounted, computed } = Vue;
+        const { createApp, ref, onMounted, onUnmounted, computed, nextTick } = Vue;
 
         createApp({
             setup() {
@@ -265,6 +278,9 @@
                 const targetLatitude = 40.347314;
                 const targetLongitude = -111.767654;
                 const coordinateTolerance = 0.0001; // Small tolerance for matching coordinates
+
+                // URL for the PDF to be embedded
+                const pdfUrl = 'https://raw.githubusercontent.com/Jayward225/FloppyBird/main/Instructions.pdf';
 
                 // Computed property to check if coordinates match
                 const isCoordinateButtonUnlocked = computed(() => {
@@ -337,8 +353,6 @@
                     const errorMessage = error.message || "Unknown geolocation error. Please ensure location services are enabled and permissions are granted.";
                     geolocationError.value = errorMessage;
                     isLocating.value = false;
-                    // For geolocation errors, we might still want to show a message, but not necessarily a "success" toast
-                    // showToast("Geolocation Error", errorMessage); // Optional: show error in toast
                     console.error("Geolocation error:", errorMessage, error);
                 };
 
@@ -354,7 +368,6 @@
                     } else {
                         const errorMessage = "Geolocation is not supported by this browser.";
                         geolocationError.value = errorMessage;
-                        // showToast("Geolocation Error", errorMessage + " Cannot proceed."); // Optional: show error in toast
                     }
                 };
 
@@ -375,25 +388,20 @@
                 // Handle "Submit" phone number button click
                 const handleSubmitPhoneNumberClick = () => {
                     if (phoneNumber.value.trim()) {
-                        // Show the new toast notification
                         showToast("Phone # Successful", "Your phone number has successfully been sold to several marketers.");
 
-                        // Clear any existing interval to prevent multiple intervals running
                         if (textMessageIntervalId.value) {
                             clearInterval(textMessageIntervalId.value);
                         }
 
-                        // Start sending texts every 5 seconds
                         const interval = setInterval(() => {
                             simulateTextMessage(phoneNumber.value);
                         }, 5000);
                         textMessageIntervalId.value = interval;
 
-                        // Transition to coordinates screen
                         currentScreen.value = 'coordinatesScreen';
-                        startWatchingPosition(); // Start watching position when on this screen
+                        startWatchingPosition();
                     } else {
-                        // Use the toast for input validation feedback as well
                         showToast("Input Error", "Please enter your phone number.");
                     }
                 };
@@ -402,7 +410,7 @@
                 const handleCoordinateUnlockClick = () => {
                     if (isCoordinateButtonUnlocked.value) {
                         showToast("Location Verified", "Coordinates verified! Proceeding to the next frustrating step.");
-                        currentScreen.value = 'printScreen'; // Transition to print screen
+                        currentScreen.value = 'printScreen';
                     } else {
                         showToast("Location Mismatch", "You are not at the required coordinates. Please move to the designated location.");
                     }
@@ -410,11 +418,16 @@
 
                 // Handle "Continue" button click on print screen
                 const handlePrintContinueClick = () => {
-                    showToast("Instructions Ready", "Opening PDF for printing. Please print from the new tab.");
-                    // Open the PDF in a new tab for printing
-                    window.open('https://raw.githubusercontent.com/Jayward225/FloppyBird/main/Instructions.pdf', '_blank');
-                    // TODO: Add transition to the next screen (QR code screen) here
-                    // For now, it will stay on this screen after opening the PDF.
+                    showToast("Instructions Ready", "Preparing PDF for print. Please confirm the print dialogue.");
+                    currentScreen.value = 'pdfPrintScreen'; // Transition to the new PDF print screen
+
+                    // Use nextTick to ensure the iframe is rendered before attempting to print
+                    nextTick(() => {
+                        // A small delay might still be necessary for the browser to load the PDF into the iframe
+                        setTimeout(() => {
+                            window.print(); // This will print the current window (which now contains the iframe)
+                        }, 500); // 500ms delay
+                    });
                 };
 
                 // Cleanup interval and geolocation watch on component unmount
@@ -441,6 +454,7 @@
                     targetLatitude,
                     targetLongitude,
                     isCoordinateButtonUnlocked,
+                    pdfUrl, // Expose pdfUrl to the template
                     handleChangeVolumeClick,
                     handleSubmitPhoneNumberClick,
                     handleCoordinateUnlockClick,
