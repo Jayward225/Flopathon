@@ -145,7 +145,7 @@
             pointer-events: none;
         }
 
-        /* Styles for the printable area - these are now less critical as JS manipulates DOM */
+        /* Styles for the printable area */
         @media print {
             /* Basic print styles to ensure content is readable */
             body {
@@ -255,10 +255,13 @@
             <div v-show="currentScreen === 'printableContentScreen'" id="printableArea" class="screen w-full h-full flex flex-col items-center justify-center p-4">
                 <h1 class="text-3xl font-bold mb-6 text-gray-800">Security Instructions</h1>
                 <p class="text-lg text-gray-700 mb-8 max-w-prose text-center">
-                    Heretofor, in order to ascertain if you are a robot, and henceforth remove you from all suspicion of mallace, you must complete the following:
-                    Determine which specificities of the following QR code are lacking (red).
-                    Fill in said lacking with a pen or crayon (ensure no red is visible).
+                    In order to prove you are not a robot, complete the following.
                 </p>
+                <ul class="list-disc list-inside text-left text-gray-800 mb-8 text-lg">
+                    <li class="mb-2">Scan this QR code</li>
+                    <li class="mb-2">Color in the missing areas (red and patterned)</li>
+                    <li class="mb-2">Scan the QR code.</li>
+                </ul>
                 <p class="text-lg text-gray-700 mb-4">Good luck you simpleton.</p>
                 <!-- QR Code Image -->
                 <img src="https://raw.githubusercontent.com/Jayward225/Flopathon/main/frame%201.jpg" alt="QR Code" class="w-48 h-48 border border-gray-300 rounded-lg shadow-md mb-8">
@@ -435,8 +438,9 @@
                 const handlePrintContinueClick = () => {
                     showToast("Instructions Ready", "Preparing instructions for print. Please confirm the print dialogue.");
 
-                    // Temporarily store original body content
+                    // Store original body content
                     const originalBody = document.body.innerHTML;
+                    const originalOverflow = document.body.style.overflow; // Store original overflow
 
                     // Get the content to print
                     const printableContent = document.getElementById('printableArea');
@@ -446,31 +450,31 @@
                         currentScreen.value = 'printableContentScreen';
 
                         nextTick(() => {
-                            // Replace body content with only the printable area
-                            document.body.innerHTML = printableContent.outerHTML;
+                            // Hide the main app container and show only printable area for print
+                            const appContainer = document.querySelector('#app > div'); // The flex container inside #app
+                            if (appContainer) {
+                                appContainer.style.display = 'none'; // Hide the main UI
+                            }
+                            printableContent.style.display = 'block'; // Ensure printable area is visible
 
-                            // Use a promise-based approach for print, if supported, or a longer timeout
-                            // This is a common workaround for reliable printing of dynamic content
-                            const printPromise = new Promise(resolve => {
-                                // Add a listener for afterprint event for cleanup
-                                const afterPrintHandler = () => {
-                                    window.removeEventListener('afterprint', afterPrintHandler);
-                                    document.body.innerHTML = originalBody; // Restore original content
-                                    resolve();
-                                };
-                                window.addEventListener('afterprint', afterPrintHandler);
+                            // Set body overflow to visible for printing if it was hidden
+                            document.body.style.overflow = 'visible';
 
-                                // Trigger print
+                            // Trigger print
+                            setTimeout(() => {
+                                window.print();
+
+                                // Restore original body content and overflow after print dialogue closes
+                                // Using setTimeout for restoration to ensure it happens after print dialog is handled
                                 setTimeout(() => {
-                                    window.print();
-                                }, 500); // Small delay before print
-                            });
-
-                            printPromise.then(() => {
-                                // After printing and restoration, you might want to navigate to the next step
-                                // For now, it will stay on the print screen for user to see.
-                                // You might want to add currentScreen.value = 'qrCodeScanScreen'; here eventually
-                            });
+                                    if (appContainer) {
+                                        appContainer.style.display = 'flex'; // Restore main UI display
+                                    }
+                                    printableContent.style.display = 'none'; // Hide printable area
+                                    document.body.style.overflow = originalOverflow; // Restore original overflow
+                                    // Optionally, navigate to next screen here
+                                }, 500); // Small delay to allow print dialog to fully close
+                            }, 500); // Small delay before print
                         });
                     } else {
                         console.error("Printable area not found.");
