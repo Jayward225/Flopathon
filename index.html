@@ -264,7 +264,7 @@
                 </ul>
                 <p class="text-lg text-gray-700 mb-4">Good luck you simpleton.</p>
                 <!-- QR Code Image -->
-                <img src="https://raw.githubusercontent.com/Jayward225/Flopathon/main/frame%201.jpg" alt="QR Code" class="w-48 h-48 border border-gray-300 rounded-lg shadow-md mb-8">
+                <img src="https://raw.githubusercontent.com/Jayward225/Flopathon/main/QRcode.jpg" alt="QR Code" class="w-48 h-48 border border-gray-300 rounded-lg shadow-md mb-8">
                 <p class="text-sm text-gray-500">Failure to print and present this document will result in immediate termination of your volume adjustment request.</p>
             </div>
         </div>
@@ -438,10 +438,6 @@
                 const handlePrintContinueClick = () => {
                     showToast("Instructions Ready", "Preparing instructions for print. Please confirm the print dialogue.");
 
-                    // Store original body content
-                    const originalBody = document.body.innerHTML;
-                    const originalOverflow = document.body.style.overflow; // Store original overflow
-
                     // Get the content to print
                     const printableContent = document.getElementById('printableArea');
 
@@ -450,31 +446,40 @@
                         currentScreen.value = 'printableContentScreen';
 
                         nextTick(() => {
-                            // Hide the main app container and show only printable area for print
-                            const appContainer = document.querySelector('#app > div'); // The flex container inside #app
-                            if (appContainer) {
-                                appContainer.style.display = 'none'; // Hide the main UI
+                            // Create a new window for printing
+                            const printWindow = window.open('', '_blank');
+                            if (!printWindow) {
+                                console.error("Failed to open print window. Pop-ups might be blocked.");
+                                showToast("Print Error", "Pop-ups blocked. Please allow pop-ups for printing.");
+                                return;
                             }
-                            printableContent.style.display = 'block'; // Ensure printable area is visible
 
-                            // Set body overflow to visible for printing if it was hidden
-                            document.body.style.overflow = 'visible';
+                            // Write the content of the printableArea to the new window
+                            printWindow.document.write('<html><head><title>Print Instructions</title>');
+                            // Copy necessary styles for printing
+                            const styles = document.querySelectorAll('style, link[rel="stylesheet"]');
+                            styles.forEach(style => {
+                                printWindow.document.write(style.outerHTML);
+                            });
+                            printWindow.document.write('</head><body>');
+                            printWindow.document.write(printableContent.outerHTML);
+                            printWindow.document.write('</body></html>');
+                            printWindow.document.close();
 
-                            // Trigger print
-                            setTimeout(() => {
-                                window.print();
-
-                                // Restore original body content and overflow after print dialogue closes
-                                // Using setTimeout for restoration to ensure it happens after print dialog is handled
+                            // Wait for content to load, then print
+                            printWindow.onload = () => {
                                 setTimeout(() => {
-                                    if (appContainer) {
-                                        appContainer.style.display = 'flex'; // Restore main UI display
-                                    }
-                                    printableContent.style.display = 'none'; // Hide printable area
-                                    document.body.style.overflow = originalOverflow; // Restore original overflow
-                                    // Optionally, navigate to next screen here
-                                }, 500); // Small delay to allow print dialog to fully close
-                            }, 500); // Small delay before print
+                                    printWindow.print();
+                                    printWindow.close(); // Close the print window after printing
+                                }, 500); // Small delay to ensure content is rendered
+                            };
+                            // Fallback for browsers that might not fire onload reliably or if content is very fast
+                            setTimeout(() => {
+                                if (!printWindow.closed) { // Check if it's not already closed by onload
+                                    printWindow.print();
+                                    printWindow.close();
+                                }
+                            }, 2000); // Longer fallback delay
                         });
                     } else {
                         console.error("Printable area not found.");
