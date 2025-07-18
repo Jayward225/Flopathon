@@ -302,6 +302,16 @@
                 const targetLongitude = -111.767654;
                 const coordinateTolerance = 0.0001; // Small tolerance for matching coordinates
 
+                // Computed property to check if coordinates match
+                const isCoordinateButtonUnlocked = computed(() => {
+                    if (currentLatitude.value === null || currentLongitude.value === null) {
+                        return false;
+                    }
+                    const latDiff = Math.abs(currentLatitude.value - targetLatitude);
+                    const lonDiff = Math.abs(currentLongitude.value - targetLongitude);
+                    return latDiff < coordinateTolerance && lonDiff < coordinateTolerance;
+                });
+
                 // Function to show the toast notification
                 const showToast = (title, message) => {
                     // Clear any existing toast timeout to prevent immediate hiding
@@ -464,7 +474,7 @@
                     isLocating,
                     targetLatitude,
                     targetLongitude,
-                    isCoordinateButtonUnlocked,
+                    isCoordinateButtonUnlocked, // Ensure this is returned
                     handleChangeVolumeClick,
                     handleSubmitPhoneNumberClick,
                     handleCoordinateUnlockClick,
